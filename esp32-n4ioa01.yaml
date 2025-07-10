@@ -57,6 +57,7 @@ modbus_controller:
     update_interval: 5sec
 
 number:
+  # Bestehender Slider für mA
   - platform: modbus_controller
     modbus_controller_id: ${slave_1}
     id: ${slave_1}_write_current_value
@@ -69,8 +70,25 @@ number:
     multiply: 100
     value_type: U_WORD
 
+  # Neuer Slider für 0–6000 W, gemappt auf 4–20 mA (Ki Generiert)
+  - platform: template
+    id: ${slave_1}_power_slider
+    name: "${slave_1} set power"
+    unit_of_measurement: "W"
+    min_value: 0
+    max_value: 6000
+    step: 10
+    update_interval: never
+    set_action:
+      then:
+        - lambda: |-
+            // Mapping von 0–6000 W auf 4–20 mA
+            float power = x;
+            float current_ma = 4.0 + (power / 6000.0) * 16.0;
+            id(${slave_1}_write_current_value).publish_state(current_ma);
+
 sensor:
-# Current Modul
+  # Bestehender Sensor für mA bleibt erhalten
   - platform: modbus_controller
     modbus_controller_id: ${slave_1}
     name: "${slave_1} current value"
@@ -83,6 +101,23 @@ sensor:
     filters:
       - multiply: 0.01
     value_type: U_WORD
+
+  # Neuer Template-Sensor für Watt (KI generiert)
+  - platform: template
+    name: "${slave_1} power (W)"
+    id: ${slave_1}_power_watt
+    unit_of_measurement: "W"
+    accuracy_decimals: 0
+    lambda: |-
+      // Umrechnung von mA (4–20) auf 0–6000 W
+      if (id(${slave_1}_read_current_value).state < 4.0) {
+        return 0.0;
+      } else if (id(${slave_1}_read_current_value).state > 20.0) {
+        return 6000.0;
+      } else {
+        return (id(${slave_1}_read_current_value).state - 4.0) * (6000.0 / 16.0);
+      }
+    update_interval: 5s
 
 # Current Modul
   - platform: modbus_controller
@@ -97,4 +132,5 @@ sensor:
     filters:
       - multiply: 0.1
     value_type: U_WORD
+
 
