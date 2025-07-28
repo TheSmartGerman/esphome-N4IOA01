@@ -85,7 +85,8 @@ number:
             // Mapping von 0–6000 W auf 4–20 mA
             float power = x;
             float current_ma = 4.0 + (power / 6000.0) * 16.0;
-            id(${slave_1}_write_current_value).publish_state(current_ma);
+            float scaled = current_ma * 100.0;  // wegen multiply: 100
+            id(${slave_1}_write_current_value).set_value(scaled);
 
 sensor:
   # Bestehender Sensor für mA bleibt erhalten
