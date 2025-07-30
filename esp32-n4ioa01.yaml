@@ -77,16 +77,19 @@ number:
     unit_of_measurement: "W"
     min_value: 0
     max_value: 6000
-    step: 10
-    update_interval: never
-    set_action:
+    step: 100
+    optimistic: true
+    mode: SLIDER
+    update_interval: 1s
+    set_action: 
       then:
-        - lambda: |-
-            // Mapping von 0–6000 W auf 4–20 mA
-            float power = x;
-            float current_ma = 4.0 + (power / 6000.0) * 16.0;
-            float scaled = current_ma * 100.0;  // wegen multiply: 100
-            id(${slave_1}_write_current_value).set_value(scaled);
+        - number.set: 
+            id: ${slave_1}_write_current_value
+            value: !lambda |-
+              // Mapping von 0–6000 W auf 4–20 mA
+              float power = x;
+              float current_ma = 4.0 + (power / 6000.0) * 16.0;
+              retrun current_ma;
 
 sensor:
   # Bestehender Sensor für mA bleibt erhalten
